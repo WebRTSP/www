@@ -62,7 +62,8 @@
           videoElement,
           [{
             urls: [stunServer]
-          }]);
+          }],
+          { debug: true });
 
         webrtsp.events.addEventListener("list", (event) => {
           updateSources(event.detail.list);
