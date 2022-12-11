@@ -8,6 +8,8 @@
     <script type="text/javascript" src="Config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spin.js/4.1.0/spin.css">
     <script>
+      const LocalStorageLastStreamerKey = "last streamer";
+
       let server = null;
       if(window.location.protocol === 'http:')
         server = `ws://${window.location.hostname}:${WebRTSPPort}/`;
@@ -36,8 +38,10 @@
       let webrtsp = null;
 
       function connect(streamerName) {
-        if(streamerName)
+        if(streamerName) {
           document.title = streamerName;
+          localStorage.setItem(LocalStorageLastStreamerKey, streamerName)
+        }
 
         webrtsp.connect(server, streamerName);
       }
@@ -66,14 +70,23 @@
         webrtsp.events.addEventListener("list", (event) => {
           updateSources(event.detail.list);
 
+          let lastStreamer = localStorage.getItem(LocalStorageLastStreamerKey);
+
           if(event.detail.list.size > 0) {
-            const requiredItem = Math.floor(Math.random() * event.detail.list.size);
-            let it = event.detail.list.keys();
-            for(let i = 0; i < requiredItem; ++i)
-              it.next();
-            webrtsp.streamerName = it.next().value;
-          } else
+            if(lastStreamer && event.detail.list.has(lastStreamer)) {
+              webrtsp.streamerName = lastStreamer;
+            } else {
+              const requiredItem = Math.floor(Math.random() * event.detail.list.size);
+              let it = event.detail.list.keys();
+              for(let i = 0; i < requiredItem; ++i)
+                it.next();
+              webrtsp.streamerName = it.next().value;
+              localStorage.setItem(LocalStorageLastStreamerKey, webrtsp.streamerName)
+            }
+          } else {
             webrtsp.streamerName = "*";
+            localStorage.removeItem(LocalStorageLastStreamerKey)
+          }
 
           document.title = webrtsp.streamerName;
         });
