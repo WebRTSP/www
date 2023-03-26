@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/WebRTSP.css">
     <script type="text/javascript" src="3rd_party/adapter-8.2.1.js"></script>
     <script type="text/javascript" src="Config.js"></script>
+    <script type="text/javascript" src="WebRTSP.js"></script>
     <script>
       const LocalStorageLastStreamerKey = "last streamer";
 
@@ -48,7 +49,6 @@
 
       async function onLoad() {
         let Spin = await import("./3rd_party/spin.min-4.1.1.js");
-        let WebRTSP = await import("./WebRTSP/WebRTSP.mjs");
 
         const videoContainer =
           document.querySelector("#videoContainer");
