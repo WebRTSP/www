@@ -9,6 +9,7 @@
     <script type="text/javascript" src="/Config.js"></script>
     <script>
       const LocalStorageLastStreamerKey = "last streamer";
+      const StreamerPrefix = "/v/"
 
       let server = null;
       if(window.location.protocol === 'http:')
@@ -68,27 +69,45 @@
           { debug: true });
 
         webrtsp.events.addEventListener("list", (event) => {
-          updateSources(event.detail.list);
+          const streamers = event.detail.list;
 
-          let lastStreamer = localStorage.getItem(LocalStorageLastStreamerKey);
+          if(streamers.size > 0) {
+            const lastStreamerName = localStorage.getItem(LocalStorageLastStreamerKey);
 
-          if(event.detail.list.size > 0) {
-            if(lastStreamer && event.detail.list.has(lastStreamer)) {
-              webrtsp.streamerName = lastStreamer;
+            let desiredStreamerName = null;
+            if(window.location.pathname.startsWith(StreamerPrefix)) {
+              try {
+                desiredStreamerName = decodeURI(window.location.pathname.substring(StreamerPrefix.length));
+              } catch {}
+            }
+
+            if(desiredStreamerName && streamers.has(desiredStreamerName)) {
+              updateSources(null);
+
+              webrtsp.streamerName = desiredStreamerName;
+            } else if(lastStreamerName && streamers.has(lastStreamerName)) {
+              updateSources(streamers);
+
+              webrtsp.streamerName = lastStreamerName;
             } else {
-              const requiredItem = Math.floor(Math.random() * event.detail.list.size);
-              let it = event.detail.list.keys();
+              updateSources(streamers);
+
+              const requiredItem = Math.floor(Math.random() * streamers.size);
+              let it = streamers.keys();
               for(let i = 0; i < requiredItem; ++i)
                 it.next();
               webrtsp.streamerName = it.next().value;
               localStorage.setItem(LocalStorageLastStreamerKey, webrtsp.streamerName)
             }
+
+            document.title = webrtsp.streamerName;
           } else {
+            updateSources(null);
+
             webrtsp.streamerName = "*";
+            document.title = "WebRTSP";
             localStorage.removeItem(LocalStorageLastStreamerKey)
           }
-
-          document.title = webrtsp.streamerName;
         });
 
         webrtsp.events.addEventListener("disconnected", (event) => {
