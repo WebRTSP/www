@@ -17,6 +17,28 @@
       else
         server = `wss://${window.location.hostname}:${WebRTSPPort}/`;
 
+      function cleanStreamsContainer() {
+        const streamsContainer =
+          document.querySelector("#streamsContainer");
+
+        for(const child of streamsContainer.children) {
+          if(child.tagName != "SPAN") {
+            streamsContainer.removeChild(child)
+          }
+        }
+      }
+      function hideStreamsContainer() {
+        const streamsContainer =
+          document.querySelector("#streamsContainer");
+        streamsContainer.style.display = "none";
+        cleanStreamsContainer();
+      }
+      function showStreamsContainer() {
+        const streamsContainer =
+          document.querySelector("#streamsContainer");
+        streamsContainer.style.display = "";
+      }
+
       function updateSources(list) {
         const buttonsContainer =
           document.querySelector("#buttonsContainer");
@@ -28,7 +50,13 @@
             button.title = description;
             button.dataset.streamerName = streamerName;
             button.dataset.streamerDescription = description;
-            button.onclick = function() { connect(this.dataset.streamerName); }
+            button.onclick = function() {
+                hideStreamsContainer();
+
+                document.title = this.dataset.streamerName;
+                localStorage.setItem(LocalStorageLastStreamerKey, this.dataset.streamerName)
+                connect(this.dataset.streamerName);
+            }
             buttonsContainer.appendChild(button);
           });
         } else {
@@ -36,14 +64,38 @@
         }
       }
 
+      function updateStreams(streamerName, list) {
+        const streamsContainer =
+          document.querySelector("#streamsContainer");
+
+        cleanStreamsContainer()
+
+        const timeFormat =
+            Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "medium"});
+        if(list) {
+          list.forEach((description, streamName) => {
+            let button = document.createElement("button");
+            let buttonTitle = timeFormat.format(new Date(description));
+            button.innerHTML = buttonTitle;
+            button.title = streamName;
+            button.dataset.streamerName = streamerName;
+            button.dataset.streamName = streamName;
+            button.dataset.streamDescription = description;
+            button.onclick = function() {
+                document.title = `${streamerName}, ${buttonTitle}`;
+                connect(this.dataset.streamName);
+            }
+            streamsContainer.appendChild(button);
+          });
+          showStreamsContainer();
+        } else {
+            hideStreamsContainer();
+        }
+      }
+
       let webrtsp = null;
 
       function connect(streamerName) {
-        if(streamerName) {
-          document.title = streamerName;
-          localStorage.setItem(LocalStorageLastStreamerKey, streamerName)
-        }
-
         webrtsp.connect(server, streamerName);
       }
 
@@ -69,44 +121,52 @@
           { debug: true });
 
         webrtsp.events.addEventListener("list", (event) => {
-          const streamers = event.detail.list;
+          const uri = event.detail.uri;
 
-          if(streamers.size > 0) {
-            const lastStreamerName = localStorage.getItem(LocalStorageLastStreamerKey);
+          if(uri == "*") {
+            const streamers = event.detail.list;
+            if(streamers.size > 0) {
+              const lastStreamerName = localStorage.getItem(LocalStorageLastStreamerKey);
 
-            let desiredStreamerName = null;
-            if(window.location.pathname.startsWith(StreamerPrefix)) {
-              try {
-                desiredStreamerName = decodeURI(window.location.pathname.substring(StreamerPrefix.length));
-              } catch {}
-            }
+              let desiredStreamerName = null;
+              if(window.location.pathname.startsWith(StreamerPrefix)) {
+                try {
+                  desiredStreamerName = decodeURI(window.location.pathname.substring(StreamerPrefix.length));
+                } catch {}
+              }
 
-            if(desiredStreamerName && streamers.has(desiredStreamerName)) {
+              if(desiredStreamerName && streamers.has(desiredStreamerName)) {
+                updateSources(null);
+
+                webrtsp.streamerName = desiredStreamerName;
+              } else if(lastStreamerName && streamers.has(lastStreamerName)) {
+                updateSources(streamers);
+
+                webrtsp.streamerName = lastStreamerName;
+              } else {
+                updateSources(streamers);
+
+                const requiredItem = Math.floor(Math.random() * streamers.size);
+                let it = streamers.keys();
+                for(let i = 0; i < requiredItem; ++i)
+                  it.next();
+                webrtsp.streamerName = it.next().value;
+                localStorage.setItem(LocalStorageLastStreamerKey, webrtsp.streamerName)
+              }
+
+              document.title = webrtsp.streamerName;
+            } else {
               updateSources(null);
 
-              webrtsp.streamerName = desiredStreamerName;
-            } else if(lastStreamerName && streamers.has(lastStreamerName)) {
-              updateSources(streamers);
-
-              webrtsp.streamerName = lastStreamerName;
-            } else {
-              updateSources(streamers);
-
-              const requiredItem = Math.floor(Math.random() * streamers.size);
-              let it = streamers.keys();
-              for(let i = 0; i < requiredItem; ++i)
-                it.next();
-              webrtsp.streamerName = it.next().value;
-              localStorage.setItem(LocalStorageLastStreamerKey, webrtsp.streamerName)
+              webrtsp.streamerName = "*";
+              document.title = "WebRTSP";
+              localStorage.removeItem(LocalStorageLastStreamerKey)
             }
-
-            document.title = webrtsp.streamerName;
           } else {
-            updateSources(null);
-
-            webrtsp.streamerName = "*";
-            document.title = "WebRTSP";
-            localStorage.removeItem(LocalStorageLastStreamerKey)
+            const streams = event.detail.list;
+            updateStreams(uri, streams);
+            spinner.stop()
+            event.preventDefault();
           }
         });
 
@@ -127,8 +187,13 @@
     <div id="rootContainer">
       <div id="buttonsContainer">
       </div>
-      <div id="videoContainer">
-        <video id="video" autoplay="true" muted="muted"> </video>
+      <div id="bodyContainer">
+          <div id="streamsContainer" style="display: none;">
+            <span> Recordings: </span>
+          </div>
+          <div id="videoContainer">
+            <video id="video" autoplay="true" muted="muted"> </video>
+          </div>
       </div>
     </div>
   </body>

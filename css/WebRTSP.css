@@ -29,6 +29,28 @@ html, body {
     margin: 2px 2px;
 }
 
+#bodyContainer {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+#streamsContainer {
+    margin: 5px 0px 5px 5px;
+
+    flex-grow: 0;
+
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    overflow-y: auto;
+}
+
+#streamsContainer button {
+    margin: 2px 2px;
+}
+
+
 #videoContainer {
     position:relative;
     margin: 5px 10px 10px 10px;
