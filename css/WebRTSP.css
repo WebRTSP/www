@@ -38,6 +38,7 @@ html, body {
 
 #streamsContainer {
     margin: 5px 0px 5px 5px;
+    padding: 17px 7px;
 
     flex-grow: 0;
 
