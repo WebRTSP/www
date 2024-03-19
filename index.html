@@ -75,14 +75,25 @@
         if(list) {
           list.forEach((description, streamName) => {
             let button = document.createElement("button");
-            let buttonTitle = timeFormat.format(new Date(description));
-            button.innerHTML = buttonTitle;
-            button.title = streamName;
+            let buttonText;
+            let buttonTitle = description;
+            try {
+                buttonText = timeFormat.format(new Date(description));
+            } catch(e) {
+                let substreamName = streamName;
+                if(substreamName.startsWith(`${streamerName}/`)) {
+                    substreamName = substreamName.substring(streamerName.length + 1);
+                }
+
+                buttonText = substreamName;
+            }
+            button.innerHTML = buttonText;
+            button.title = buttonTitle;
             button.dataset.streamerName = streamerName;
             button.dataset.streamName = streamName;
             button.dataset.streamDescription = description;
             button.onclick = function() {
-                document.title = `${streamerName}, ${buttonTitle}`;
+                document.title = `${streamerName}, ${buttonText}`;
                 connect(this.dataset.streamName);
             }
             streamsContainer.appendChild(button);
