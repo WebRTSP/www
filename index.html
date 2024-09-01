@@ -21,9 +21,13 @@
         const streamsContainer =
           document.querySelector("#streamsContainer");
 
-        for(const child of streamsContainer.children) {
+        const childNodes = streamsContainer.childNodes;
+        for(let i = 0; i < childNodes.length;) {
+          const child = childNodes[i];
           if(child.tagName != "SPAN") {
-            streamsContainer.removeChild(child)
+            streamsContainer.removeChild(child);
+          } else {
+            ++i;
           }
         }
       }
